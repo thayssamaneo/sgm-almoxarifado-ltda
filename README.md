@@ -1,7 +1,5 @@
-# Documentação da Estruturação do Gerenciador de uma Loja de Instrumentos Musicais  
-  
-## Sistema de Gerenciamento de uma Loja de Instrumentos Musicais  
-  
+# Sistema de Gerenciamento Interno de Estoque - Almoxarifado LTDA
+
 **Padrão Internacional:** ISO/IEC/IEEE 29148:2018    
 **Versão:** 1.0.0    
 **Data:** 2026-10-19    
@@ -102,14 +100,15 @@ flowchart TD
     Interface --> Usuário
 ```
 
-### 2.2 Arquitetura de Páginas e Estrutura de Arquivos` 
+### 2.2 Arquitetura de Páginas e Estrutura de Arquivos
 Conforme o planejamento estruturado do sistema, a aplicação será dividida nos seguintes arquivos e responsabilidades:  
-* **exibirProdutos.js:** Página que exibe todos os produtos de forma listada.  
-* **login.js:** Página para Gestores e Operadores se registrarem para executar as ações necessárias.  
-* **cadastroProdutos.js:** Página para a criação de um novo produto ao estoque.  
-* **cadastroMovimentacao:** Página para a criação de uma nova movimentação, alterando a quantidade de produtos registrados no estoque.  
-* **criarContaOperador:** Página em que o Gestor cria uma nova conta de um Operador.
-* **exibirMovimentacao:** Página para mostrar a lista das movimentações efetuadas pelo Gestor.  
+* **login.js (`/login`):** Página para Gestores e Operadores se autenticarem no sistema.
+* **dashboard.js (`/dashboard`):** Painel executivo com valor total em estoque, quantidade de itens e produtos mais movimentados.
+* **exibirProdutos.js (`/exibirProdutos`):** Página que exibe todos os produtos de forma listada (com busca e exclusão segura).  
+* **cadastroProdutos.js (`/cadastroProdutos`):** Página para a criação de um novo produto ao estoque (acesso exclusivo do Gestor).  
+* **cadastroMovimentacao.js (`/cadastroMovimentacao`):** Página para a criação de uma nova movimentação (entrada ou saída/venda).  
+* **exibirMovimentacao.js (`/exibirMovimentacao`):** Página com o histórico completo das movimentações efetuadas.
+* **criarContaOperador.js (`/criarContaOperador`):** Página em que o Gestor cria uma nova conta de um Operador ou Gestor.  
   
 ### 2.3 Classes de Usuários  
 | Usuário | Descrição |  
@@ -125,9 +124,28 @@ Conforme o planejamento estruturado do sistema, a aplicação será dividida nos
 - O banco de dados MongoDB está ativo e aceitando conexões na porta padrão.
   
 ### 2.6 Instalação e Execução  
-###        depois #######################################
-  
-### 3.0 Estruturamento dos dados
+#### **Pré-requisitos:**
+* Node.js (versão 18 ou superior instalada);
+* MongoDB Server ativo e rodando na porta padrão (`mongodb://127.0.0.1:27017`);
+* Gerenciador de pacotes `npm`.
+
+#### **Passos de Execução:**
+1. Instale as dependências do projeto:
+```bash
+npm install
+```
+2. Inicie o servidor de desenvolvimento do Next.js:
+```bash
+npm run dev
+```
+3. Acesse a aplicação no navegador em:
+```
+http://localhost:3000
+```
+
+#### **Credenciais de Acesso (Demonstração):**
+* **Gestor:** `gestor@almoxarifado.com` | Senha: `123` (Acesso completo a todas as funções)
+* **Operador:** `operador@almoxarifado.com` | Senha: `123` (Acesso a consulta, histórico e registro de movimentações)
 | PRODUTOS | USUÁRIOS | MOVIMENTAÇÕES |
 | --- | --- | --- |
 | _id | _id | _id |
@@ -189,15 +207,38 @@ Mapeamento do que o usuário pode realizar no sistema de gerenciamento a partir 
 
 ### 6.2 Diagrama de Sequência (Fluxo de Exclusão Segura - Exemplo `DELETE`)
 Demonstração prática da responsabilidade com dados e interações descritas na Etapa 7 do projeto integrado.
+
 ```mermaid
-sequenceDiagram  
-    
+sequenceDiagram
+    actor Gestor as Gestor (Loja)
+    participant View as View (ProdutosTable & ConfirmModal)
+    participant Route as API Route (/api/produtos/[id])
+    participant Controller as produtoController
+    participant Model as produtoModel
+    participant BD as MongoDB
+
+    Gestor->>View: Clica no botão "Excluir" do produto
+    View->>Gestor: Abre modal de confirmação segura (ConfirmModal)
+    Gestor->>View: Clica em "Confirmar Exclusão"
+    View->>Route: DELETE /api/produtos/[id]?perfil=Gestor
+    Route->>Controller: excluirProdutoController(id, perfilUsuario)
+    Controller->>Controller: Valida perfilUsuario === "Gestor" (RF-03 / UC4)
+    Controller->>Model: buscarProdutoPorId(id)
+    Model->>BD: findOne({ _id: ObjectId(id) })
+    BD-->>Model: Retorna produto existente
+    Controller->>Model: excluirProduto(id)
+    Model->>BD: deleteOne({ _id: ObjectId(id) })
+    BD-->>Model: Retorna { deletedCount: 1 }
+    Model-->>Controller: Retorna true (sucesso)
+    Controller-->>Route: { sucesso: true, mensagem: "Produto removido com segurança!" }
+    Route-->>View: Status 200 JSON
+    View-->>Gestor: Fecha modal, atualiza lista e exibe mensagem de sucesso
 ```
-    depois
 
 ## 7. Controle de Versões
 ### 7.1 Histórico de Alterações / função
 | Versão | Horário | Autor | Modificação |
 | --- | --- | --- | --- |
-| 1.0.0 branch [documentacao] | 11:30 | Lucas Combinato Gato | Versão final: Definição da Documentação geral do projeto (requisitos, pages, nomoe do projeto, etc.) |
-| 1.0.0 | 11:30 | Thayssa Maneo | Versão Final: Criou todos os prótótipos no Sticth e planejou as páginas. |
+| 1.0.0 branch [documentacao] | 11:30 | Lucas Combinato Gato | Versão final: Definição da Documentação geral do projeto (requisitos, pages, nome do projeto, etc.) |
+| 1.0.0 | 11:30 | Thayssa Maneo | Versão Final: Criou todos os protótipos no Stitch e planejou as páginas. |
+| 1.1.0 | 16:45 | Thayssa Maneo & Lucas Combinato | Finalização do README, inclusão do Dashboard executivo com métricas de valor e ranking, e refatoração estética completa baseada nos protótipos Stitch. |
